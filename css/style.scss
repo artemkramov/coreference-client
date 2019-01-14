@@ -1,0 +1,30 @@
+body {
+
+  $header-height: 280px;
+  $full-height: 100vh;
+  $full-height-percent: 100%;
+  $container-content-height: calc(#{$full-height} - #{$header-height});
+
+  #header {
+    height: $header-height;
+
+    .jumbotron {
+      padding: 2rem 1rem;
+      margin-bottom: 0;
+    }
+  }
+
+  #container-content {
+    height: $container-content-height;
+  }
+
+  #page-content {
+    height: $full-height-percent;
+
+    .form-control-file-text {
+      height: $full-height-percent;
+      resize: none;
+    }
+  }
+
+}
