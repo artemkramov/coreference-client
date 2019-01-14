@@ -12,7 +12,8 @@ const basicRadioChannel = Backbone.Radio.channel('basic');
 const basicRadioChannelEvents = {
     radioEventFileSelected: 'file:selected',
     radioEventFileGetText: 'file:getText',
-    radioEventProductAdd: 'product:add',
+    radioEventPreloaderShow: 'preloader:show',
+    radioEventPreloaderHide: 'preloader:hide',
     radioEventProductClear: 'product:clear',
     radioEventProductSelect: 'product:select',
     radioEventProductDeselect: 'product:deselect',
@@ -34,12 +35,65 @@ const basicRadioChannelEvents = {
     radioEventUserLogout: 'user:logout'
 };
 
-const hostIP = "";
+const hostIP = "http://localhost:8090";
+const urlExtract = '/extract';
+
+const errorMessages = {
+    "serverError": "Server error"
+};
 
 var PageTextboxModel = Model.extend({
     defaults: {
         fileText: ""
     }
+});
+
+var ApiModel = Model.extend({
+
+    /**
+     * Send JSON request to server
+     * @param uri
+     * @param options
+     * @returns {*}
+     */
+    sendJSONRequest: function (uri, options) {
+        let ajaxOptions = _.extend({
+            cache: false,
+            dataType: 'json',
+            url: hostIP + uri,
+            contentType: 'application/json',
+            success: function (response) {
+                if (_.isNull(response) || _.isUndefined(response)) {
+                    return deferred.reject();
+                }
+                return deferred.resolve(response);
+            },
+            error: function () {
+                return deferred.reject();
+            }
+        }, options);
+        var deferred = $.Deferred();
+        $.ajax(ajaxOptions);
+        return deferred.promise();
+    }
+});
+
+var NLPModel = ApiModel.extend({
+
+    extractEntitiesFromText: function (text) {
+        let deferred = $.Deferred();
+        let options = {
+            data: JSON.stringify({"text": text}),
+            type: "post"
+        };
+        this.sendJSONRequest(urlExtract, options).done(function (response) {
+            return deferred.resolve();
+        }).fail(function () {
+            return deferred.reject(errorMessages.serverError);
+        });
+        return deferred.promise();
+    }
+
 });
 
 /**
@@ -66,11 +120,19 @@ var NotificationModel = Model.extend({
      * @param status
      */
     setMessage: function (message, status) {
-        if (_.isUndefined(message)) {
-            message = this.getDefaultMessage();
+        if (!_.isUndefined(message)) {
+            let n  = new Noty({
+                type: status,
+                text: message,
+                layout: 'bottomCenter',
+                timeout: false,
+                theme: 'metroui'
+            });
+            n.show();
         }
-        this.set('status', status);
-        this.set('message', message);
+        else {
+            Noty.closeAll();
+        }
     },
     /**
      * Default message for the notification block

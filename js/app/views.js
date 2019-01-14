@@ -12,7 +12,7 @@ var HeaderView = View.extend({
             return;
         }
         let reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             let contents = e.target.result;
             basicRadioChannel.trigger(basicRadioChannelEvents.radioEventFileSelected, contents);
         };
@@ -21,6 +21,14 @@ var HeaderView = View.extend({
     },
     onBtnRecognize: function () {
         let text = basicRadioChannel.request(basicRadioChannelEvents.radioEventFileGetText);
+        basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderShow);
+        this.model.extractEntitiesFromText(text).done(function () {
+
+        }).fail(function (errorMessage) {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, errorMessage, "error");
+        }).always(function () {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderHide);
+        });
         console.log(text);
     }
 });
@@ -81,9 +89,23 @@ var AppLayout = View.extend({
     },
     events: {},
     initialize: function () {
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventPreloaderShow, this.onPreloaderShow, this);
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventPreloaderHide, this.onPreloaderHide, this);
+    },
+    getPreloaderUIElement: function () {
+        return this.$el.find("#preloader");
+    },
+    onPreloaderShow: function () {
+        this.getPreloaderUIElement().addClass('visible');
+    },
+    onPreloaderHide: function () {
+        this.getPreloaderUIElement().removeClass('visible');
     },
     onRender() {
-        this.showChildView('header', new HeaderView({'el': this.regions['header']}).render());
+        this.showChildView('header', new HeaderView({
+            'el': this.regions['header'],
+            'model': new NLPModel()
+        }).render());
         this.showChildView('sidebar', new SidebarView({'el': this.regions['sidebar']}).render());
         this.showChildView('page', new PageView({
             'el': this.regions['page'],
