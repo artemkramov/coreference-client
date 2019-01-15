@@ -1,6 +1,5 @@
 const { Application } = Marionette;
 
-const pageTextboxModel = new PageTextboxModel();
 const notificationModel = new NotificationModel();
 
 /**

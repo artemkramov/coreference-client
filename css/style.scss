@@ -31,6 +31,23 @@ body {
       height: $full-height-percent;
       resize: none;
     }
+
+    .page-parsed-wrapper {
+      height: $full-height-percent;
+      overflow: auto;
+
+      .token {
+        &.token-entity {
+          &:hover {
+            cursor: pointer;
+          }
+          &.selected {
+            background-color: darkgreen;
+          }
+        }
+      }
+
+    }
   }
 
   #preloader {

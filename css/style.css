@@ -10,6 +10,13 @@ body #page-content {
   body #page-content .form-control-file-text {
     height: 100%;
     resize: none; }
+  body #page-content .page-parsed-wrapper {
+    height: 100%;
+    overflow: auto; }
+    body #page-content .page-parsed-wrapper .token.token-entity:hover {
+      cursor: pointer; }
+    body #page-content .page-parsed-wrapper .token.token-entity.selected {
+      background-color: darkgreen; }
 body #preloader {
   position: fixed;
   width: 100vw;

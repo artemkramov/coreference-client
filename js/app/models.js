@@ -14,8 +14,11 @@ const basicRadioChannelEvents = {
     radioEventFileGetText: 'file:getText',
     radioEventPreloaderShow: 'preloader:show',
     radioEventPreloaderHide: 'preloader:hide',
+    radioEventPageChange: 'page:change',
+    radioEventEntitySelect: 'entity:select',
+    radioEventEntityGetSelected: 'entity:getSelected',
+
     radioEventProductClear: 'product:clear',
-    radioEventProductSelect: 'product:select',
     radioEventProductDeselect: 'product:deselect',
     radioEventProductRemove: 'product:remove',
     radioEventProductUpdate: 'product:update',
@@ -28,7 +31,6 @@ const basicRadioChannelEvents = {
     radioEventScanningModeOn: 'scanning:on',
     radioEventScanningModeOff: 'scanning:off',
     radioEventScanningKeyDown: 'scanning:keydown',
-    radioEventPageChange: 'page:change',
     radioEventKeyboardKeyPress: 'keyboard:keypress',
     radioEventKeyboardShow: 'keyboard:show',
     radioEventKeyboardHide: 'keyboard:hide',
@@ -39,13 +41,18 @@ const hostIP = "http://localhost:8090";
 const urlExtract = '/extract';
 
 const errorMessages = {
-    "serverError": "Server error"
+    "serverError": "Server error",
+    "emptyEntities": "No entity was found in the text"
 };
 
 var PageTextboxModel = Model.extend({
     defaults: {
         fileText: ""
     }
+});
+
+var PageParsedModel = Model.extend({
+
 });
 
 var ApiModel = Model.extend({
@@ -81,13 +88,54 @@ var ApiModel = Model.extend({
 var NLPModel = ApiModel.extend({
 
     extractEntitiesFromText: function (text) {
+        let self = this;
         let deferred = $.Deferred();
         let options = {
             data: JSON.stringify({"text": text}),
             type: "post"
         };
         this.sendJSONRequest(urlExtract, options).done(function (response) {
-            return deferred.resolve();
+            if (_.isEmpty(response.entities)) {
+                return deferred.reject(errorMessages.emptyEntities);
+            }
+            /**
+             * Save full response to local storage as global object
+             */
+            localStorage.setItem('parsedText', JSON.stringify(response));
+
+            /**
+             * Parse response and prepare data for collection view
+             */
+            let items = [];
+            let counter = 0;
+            let entityNumber = 0;
+            while (counter < response.tokens.length) {
+                let token = response.tokens[counter];
+                let dataItem = {
+                    isSelected: false,
+                    isChosen: false,
+                    word: '',
+                    isEntity: false,
+                    groupID: null,
+                    entityNumber: entityNumber
+                };
+                if (!_.isNull(token.groupID)) {
+                    dataItem.isEntity = true;
+                    dataItem.word = token.groupWord;
+                    dataItem.groupID = token.groupID;
+                    counter += token.groupLength;
+                }
+                else {
+                    if (token.isEntity) {
+                        dataItem.isEntity = true;
+                    }
+                    dataItem.word = token.word;
+                    counter++;
+                }
+                items.push(dataItem);
+                entityNumber++;
+            }
+            return deferred.resolve(items);
         }).fail(function () {
             return deferred.reject(errorMessages.serverError);
         });
@@ -95,6 +143,7 @@ var NLPModel = ApiModel.extend({
     }
 
 });
+
 
 /**
  * Notification model
