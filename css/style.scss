@@ -18,6 +18,15 @@ body {
       padding: 2rem 1rem;
       margin-bottom: 0;
     }
+
+    .btn-header-control {
+      margin-left: 15px;
+    }
+
+    .select-cluster-wrapper {
+      overflow: hidden;
+    }
+
   }
 
   #container-content {
@@ -44,6 +53,10 @@ body {
           &.selected {
             background-color: darkgreen;
           }
+          &.chosen {
+            background-color: darkred;
+            opacity: 0.8;
+          }
         }
       }
 
@@ -68,6 +81,24 @@ body {
       color: #FFF;
     }
     
+  }
+
+  #clusters-wrapper {
+
+    height: $full-height-percent;
+    overflow-y: auto;
+
+    .list-group-item {
+      & > div {
+        overflow: hidden;
+      }
+
+      .cluster-items {
+        .btn-remove-cluster-item {
+          cursor: pointer;
+        }
+      }
+    }
   }
 
   // Noty theme

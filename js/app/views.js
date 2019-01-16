@@ -34,6 +34,17 @@ var HeaderLoadFileView = View.extend({
 
 var HeaderSaveClustersView = View.extend({
     template: _.template($("#header-save-clusters-template").html()),
+    initialize: function () {
+        this.listenTo(this.model, 'change:clusters', this.render);
+
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventClusterSizeChange, this.onClusterSizeChange, this);
+    },
+    onBeforeDestroy() {
+        basicRadioChannel.off(basicRadioChannelEvents.radioEventClusterSizeChange, this.onClusterSizeChange, this);
+    },
+    onClusterSizeChange: function (clusters) {
+        this.model.set('clusters', clusters);
+    },
     events: {
         "click #btn-reset": "onBtnReset",
         "click #btn-add-to-cluster": "onBtnAddToCluster"
@@ -45,7 +56,16 @@ var HeaderSaveClustersView = View.extend({
     },
     onBtnAddToCluster: function () {
         let selectedTokens = basicRadioChannel.request(basicRadioChannelEvents.radioEventEntityGetSelected);
-        console.log(selectedTokens);
+        let clusterID = this.$el.find('#select-cluster').val();
+        if (_.isEmpty(selectedTokens)) {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, "Cluster cannot be empty!", "error");
+        }
+        else {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventEntityAddToCluster, {
+                clusterID: clusterID,
+                selectedTokens: selectedTokens
+            });
+        }
     }
 });
 
@@ -74,7 +94,8 @@ var HeaderView = View.extend({
                 break;
             case "parsed":
                 self.showChildView('content', new HeaderSaveClustersView({
-                    'el': element
+                    'el': element,
+                    model: self.model
                 }).render());
                 break;
             default:
@@ -86,12 +107,89 @@ var HeaderView = View.extend({
     }
 });
 
-//var ClusterView = View.extend({
-//    template: _.template($("#sidebar-template").html())
-//});
+var ClusterView = View.extend({
+    template: _.template($("#cluster-template").html()),
+    events: {
+        "click .btn-remove-cluster": "onBtnRemoveCluster",
+        "click .btn-remove-cluster-item": "onBtnRemoveClusterItem"
+    },
+    initialize() {
+        this.listenTo(this.model, 'change', this.render);
+    },
+    onBtnRemoveCluster: function () {
+        /**
+         * Remove chosen label from all tokens of cluster
+         */
+        _.each(this.model.get('tokens'), function (token) {
+            token.set('isChosen', false);
+        });
+        this.model.collection.remove(this.model);
+    },
+    onBtnRemoveClusterItem: function (e) {
+        let tokenNumber = parseInt($(e.currentTarget).data('token'));
+        let token = this.model.get('tokens')[tokenNumber];
+        this.model.get('tokens').splice(tokenNumber, 1);
+        this.model.set('tokens', this.model.get('tokens'));
+        token.set('isChosen', false);
+        if (this.model.get('tokens').length == 0) {
+            this.onBtnRemoveCluster();
+        }
+        else {
+            this.render();
+        }
+    }
+});
 
-var SidebarView = View.extend({
-    template: _.template($("#sidebar-template").html())
+var SidebarEmptyView = View.extend({
+    template: _.template($("#sidebar-empty-template").html())
+});
+
+var SidebarView = CollectionView.extend({
+    template: _.template($("#sidebar-template").html()),
+    childView: ClusterView,
+    childViewContainer: "#clusters-wrapper",
+    emptyView: SidebarEmptyView,
+    initialize() {
+        let self = this;
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventEntityAddToCluster, this.onEntityToClusterAdd, this);
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventPageChange, this.onPageChange, this);
+
+        this.listenTo(this.collection, 'add', this.render);
+        this.listenTo(this.collection, 'remove', this.render);
+        this.listenTo(this.collection, 'reset', this.render);
+
+        this.listenTo(this.collection, 'add', this.onCollectionSizeChange);
+        this.listenTo(this.collection, 'remove', this.onCollectionSizeChange);
+        this.listenTo(this.collection, 'reset', this.onCollectionSizeChange);
+    },
+    onCollectionSizeChange: function () {
+        basicRadioChannel.trigger(basicRadioChannelEvents.radioEventClusterSizeChange, this.collection.toJSON());
+    },
+    onBeforeDestroy() {
+        basicRadioChannel.off(basicRadioChannelEvents.radioEventEntityAddToCluster, this.onEntityToClusterAdd, this);
+        basicRadioChannel.off(basicRadioChannelEvents.radioEventPageChange, this.onPageChange, this);
+    },
+    onPageChange: function (page) {
+        if (page == "textbox") {
+            this.collection.reset();
+        }
+    },
+    onEntityToClusterAdd: function (data) {
+        let cluster = null;
+        if (_.isEmpty(data.clusterID)) {
+            let clusterCollectionLength = this.collection.length;
+            cluster = this.collection.add({
+                id: clusterCollectionLength,
+                name: 'Cluster #' + clusterCollectionLength.toString(),
+                tokens: []
+            });
+        }
+        else {
+            cluster = this.collection.at(data.clusterID);
+        }
+        data.selectedTokens.map(token => token.set({isChosen: true, isSelected: false}));
+        cluster.set('tokens', cluster.get('tokens').concat(data.selectedTokens));
+    }
 });
 
 var PageParsedTokenView = View.extend({
@@ -100,10 +198,13 @@ var PageParsedTokenView = View.extend({
     events: {
         "click .token-entity": "onTokenClick"
     },
-    onTokenClick: function(e) {
-        let ui = $(e.currentTarget);
-        let number = parseInt($(ui).data('number'));
-        basicRadioChannel.trigger(basicRadioChannelEvents.radioEventEntitySelect, number);
+    initialize: function () {
+        this.listenTo(this.model, 'change', this.render);
+    },
+    onTokenClick: function (e) {
+        if (!this.model.get('isChosen')) {
+            this.model.set('isSelected', !this.model.get('isSelected'));
+        }
     }
 });
 
@@ -113,6 +214,7 @@ var PageParsedView = CollectionView.extend({
     childViewContainer: '.page-parsed-wrapper',
     initialize() {
         basicRadioChannel.on(basicRadioChannelEvents.radioEventEntitySelect, this.onEntitySelect, this);
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventPageChange, this.onPageChange, this);
         basicRadioChannel.reply(basicRadioChannelEvents.radioEventEntityGetSelected, this.getSelectedEntities, this);
 
         /**
@@ -120,16 +222,19 @@ var PageParsedView = CollectionView.extend({
          */
         this.listenTo(this.collection, 'add', this.render);
         this.listenTo(this.collection, 'remove', this.render);
-        this.listenTo(this.collection, 'change', this.render);
+        //this.listenTo(this.collection, 'change', this.render);
         this.listenTo(this.collection, 'update', this.render);
         this.listenTo(this.collection, 'reset', this.render);
     },
-    onEntitySelect: function(number) {
+    onEntitySelect: function (number) {
         let entity = this.collection.at(number);
         entity.set('isSelected', !entity.get('isSelected'));
     },
     getSelectedEntities: function () {
         return this.collection.filter(token => token.get('isSelected'));
+    },
+    onPageChange: function () {
+        this.collection.reset();
     },
     onBeforeDestroy() {
         basicRadioChannel.off(basicRadioChannelEvents.radioEventEntitySelect, this.onEntitySelect, this);
@@ -225,7 +330,10 @@ var AppLayout = View.extend({
             'el': this.regions['header'],
             'model': new NLPModel()
         }).render());
-        this.showChildView('sidebar', new SidebarView({'el': this.regions['sidebar']}).render());
+        this.showChildView('sidebar', new SidebarView({
+            'el': this.regions['sidebar'],
+            'collection': new Backbone.Collection()
+        }).render());
         this.showChildView('page', new PageView({
             'el': this.regions['page'],
             model: new Model({activePage: 'default'}),

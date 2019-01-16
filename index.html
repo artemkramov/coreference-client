@@ -37,8 +37,26 @@
 
 <script type="text/template" id="header-save-clusters-template">
     <div class="form-group">
-        <button type="button" class="btn btn-danger" id="btn-reset">Reset</button>
-        <button type="button" class="btn btn-outline-dark" id="btn-add-to-cluster">Add to cluster</button>
+        <div class="row">
+            <div class="col-sm-8">
+                <button type="button" class="btn btn-outline-success btn-header-control pull-right" id="btn-save-clusters">Save clusters</button>
+                <button type="button" class="btn btn-outline-dark btn-header-control pull-right" id="btn-add-to-cluster">Add to cluster</button>
+                <div class="select-cluster-wrapper">
+                    <label for="select-cluster" class="d-none">Cluster</label>
+                    <select class="form-control" id="select-cluster">
+                        <option value="">New cluster</option>
+                        <% _.each(clusters, function(cluster) { %>
+                        <option value="<%= cluster.id %>"><%= cluster.name %></option>
+                        <% }) %>
+                    </select>
+                </div>
+            </div>
+            <div class="col-sm-4">
+                <button type="button" class="btn btn-danger pull-right" id="btn-reset">Reset</button>
+            </div>
+        </div>
+
+
     </div>
 </script>
 
@@ -69,12 +87,37 @@
 
 <script type="text/template" id="cluster-template">
     <div class="list-group-item">
-
+        <div>
+            <a href="#<%= id %>" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="<%= id %>">
+                <%= name %>
+            </a>
+            <button class="btn btn-danger btn-remove-cluster pull-right">
+                <i class="fa fa-remove"></i>
+            </button>
+        </div>
+        <div class="cluster-items-wrapper">
+            <ul class="cluster-items">
+                <% let tokenNumber = 0; %>
+                <% _.each(tokens, function (token) { %>
+                <li>
+                    <label><%= token.get('word') %></label>
+                    <i class="fa fa-remove btn-remove-cluster-item" data-token="<%= tokenNumber %>"></i>
+                </li>
+                <% tokenNumber++; %>
+                <% }) %>
+            </ul>
+        </div>
     </div>
 </script>
 
+<script type="text/template" id="sidebar-empty-template">
+    No clusters.
+</script>
+
 <script type="text/template" id="sidebar-template">
-    Sidebar
+    <div id="clusters-wrapper">
+
+    </div>
 </script>
 
 <script type="text/template" id="page-parsed-template">
@@ -82,7 +125,8 @@
 </script>
 
 <script type="text/template" id="page-parsed-token-template">
-    <span class="token <%= isEntity ? 'token-entity badge badge-primary' : '' %> <%= isSelected ? 'selected' : '' %> <%= isChosen ? 'chosen' : '' %>" data-number="<%= entityNumber %>"><%= word %></span>
+    <span class="token <%= isEntity ? 'token-entity badge badge-primary' : '' %> <%= isSelected ? 'selected' : '' %> <%= isChosen ? 'chosen' : '' %>"
+          data-number="<%= entityNumber %>"><%= word %></span>
 </script>
 
 <script type="text/template" id="page-textbox-template">

@@ -17,6 +17,8 @@ const basicRadioChannelEvents = {
     radioEventPageChange: 'page:change',
     radioEventEntitySelect: 'entity:select',
     radioEventEntityGetSelected: 'entity:getSelected',
+    radioEventEntityAddToCluster: 'entity:addToCluster',
+    radioEventClusterSizeChange: 'cluster:sizeChange',
 
     radioEventProductClear: 'product:clear',
     radioEventProductDeselect: 'product:deselect',
@@ -86,6 +88,10 @@ var ApiModel = Model.extend({
 });
 
 var NLPModel = ApiModel.extend({
+
+    defaults: {
+        clusters: []
+    },
 
     extractEntitiesFromText: function (text) {
         let self = this;
