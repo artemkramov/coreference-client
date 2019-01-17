@@ -19,29 +19,14 @@ const basicRadioChannelEvents = {
     radioEventEntityGetSelected: 'entity:getSelected',
     radioEventEntityAddToCluster: 'entity:addToCluster',
     radioEventEntityRemoveFromCluster: 'entity:removeFromCluster',
+    radioEventEntityRetrieve: 'entity:retrieve',
     radioEventClusterSizeChange: 'cluster:sizeChange',
-
-    radioEventProductClear: 'product:clear',
-    radioEventProductDeselect: 'product:deselect',
-    radioEventProductRemove: 'product:remove',
-    radioEventProductUpdate: 'product:update',
-    radioEventProductEditShow: 'product:editShow',
-    radioEventProductEditHide: 'product:editHide',
-    radioEventDiscountSubtotalAdd: 'discount:add',
-    radioEventTotalSumRecount: 'product:recountSum',
-    radioReturnTotalSum: 'product:getTotalSum',
-    radioEventNotification: 'notification:push',
-    radioEventScanningModeOn: 'scanning:on',
-    radioEventScanningModeOff: 'scanning:off',
-    radioEventScanningKeyDown: 'scanning:keydown',
-    radioEventKeyboardKeyPress: 'keyboard:keypress',
-    radioEventKeyboardShow: 'keyboard:show',
-    radioEventKeyboardHide: 'keyboard:hide',
-    radioEventUserLogout: 'user:logout'
+    radioEventNotification: 'notification:push'
 };
 
 const hostIP = "http://localhost:8090";
 const urlExtract = '/extract';
+const urlSave = '/save';
 
 const errorMessages = {
     "serverError": "Server error",
@@ -94,6 +79,20 @@ var NLPModel = ApiModel.extend({
         clusters: []
     },
 
+    saveTokens: function (tokens) {
+        let deferred = $.Deferred();
+        let options = {
+            data: JSON.stringify(tokens),
+            type: "post"
+        };
+        this.sendJSONRequest(urlSave, options).done(function () {
+            return deferred.resolve();
+        }).fail(function () {
+            return deferred.reject(errorMessages.serverError);
+        });
+        return deferred.promise();
+    },
+
     extractEntitiesFromText: function (text) {
         let self = this;
         let deferred = $.Deferred();
@@ -123,6 +122,7 @@ var NLPModel = ApiModel.extend({
                     word: '',
                     isEntity: false,
                     groupID: null,
+                    groupWords: [],
                     entityNumber: entityNumber,
                     clusterID: null
                 };
@@ -130,6 +130,13 @@ var NLPModel = ApiModel.extend({
                     dataItem.isEntity = true;
                     dataItem.word = token.groupWord;
                     dataItem.groupID = token.groupID;
+                    let i = counter;
+                    for (i = counter; i < counter + token.groupLength; i++) {
+                        dataItem.groupWords.push({
+                            word: response.tokens[i].word,
+                            tag: response.tokens[i].tag
+                        })
+                    }
                     counter += token.groupLength;
                 }
                 else {
@@ -137,6 +144,7 @@ var NLPModel = ApiModel.extend({
                         dataItem.isEntity = true;
                     }
                     dataItem.word = token.word;
+                    dataItem.tag = token.tag;
                     counter++;
                 }
                 items.push(dataItem);

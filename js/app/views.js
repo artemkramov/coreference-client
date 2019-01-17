@@ -47,7 +47,8 @@ var HeaderSaveClustersView = View.extend({
     },
     events: {
         "click #btn-reset": "onBtnReset",
-        "click #btn-add-to-cluster": "onBtnAddToCluster"
+        "click #btn-add-to-cluster": "onBtnAddToCluster",
+        "click #btn-save-clusters": "onBtnSaveClusters"
     },
     onBtnReset: function () {
         if (confirm('Are you sure you want to reset all?')) {
@@ -66,6 +67,17 @@ var HeaderSaveClustersView = View.extend({
                 selectedTokens: selectedTokens
             });
         }
+    },
+    onBtnSaveClusters: function () {
+        let tokens = basicRadioChannel.request(basicRadioChannelEvents.radioEventEntityRetrieve);
+        basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderShow);
+        this.model.saveTokens(tokens).done(function () {
+
+        }).fail(function (errorMessage) {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, errorMessage, "error");
+        }).always(function () {
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderHide);
+        });
     }
 });
 
@@ -190,6 +202,7 @@ var SidebarView = CollectionView.extend({
         basicRadioChannel.off(basicRadioChannelEvents.radioEventEntityAddToCluster, this.onEntityToClusterAdd, this);
         basicRadioChannel.off(basicRadioChannelEvents.radioEventPageChange, this.onPageChange, this);
     },
+
     onPageChange: function (page) {
         if (page == "textbox") {
             this.collection.reset();
@@ -259,6 +272,7 @@ var PageParsedView = CollectionView.extend({
         basicRadioChannel.on(basicRadioChannelEvents.radioEventEntitySelect, this.onEntitySelect, this);
         basicRadioChannel.on(basicRadioChannelEvents.radioEventPageChange, this.onPageChange, this);
         basicRadioChannel.reply(basicRadioChannelEvents.radioEventEntityGetSelected, this.getSelectedEntities, this);
+        basicRadioChannel.reply(basicRadioChannelEvents.radioEventEntityRetrieve, this.getAllEntities, this);
 
         /**
          * Listen to the change of the internal collection
@@ -275,6 +289,9 @@ var PageParsedView = CollectionView.extend({
     },
     getSelectedEntities: function () {
         return this.collection.filter(token => token.get('isSelected'));
+    },
+    getAllEntities: function () {
+        return this.collection.toJSON();
     },
     onPageChange: function () {
         this.collection.reset();
