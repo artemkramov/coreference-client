@@ -18,6 +18,7 @@ const basicRadioChannelEvents = {
     radioEventEntitySelect: 'entity:select',
     radioEventEntityGetSelected: 'entity:getSelected',
     radioEventEntityAddToCluster: 'entity:addToCluster',
+    radioEventEntityRemoveFromCluster: 'entity:removeFromCluster',
     radioEventClusterSizeChange: 'cluster:sizeChange',
 
     radioEventProductClear: 'product:clear',
@@ -119,11 +120,11 @@ var NLPModel = ApiModel.extend({
                 let token = response.tokens[counter];
                 let dataItem = {
                     isSelected: false,
-                    isChosen: false,
                     word: '',
                     isEntity: false,
                     groupID: null,
-                    entityNumber: entityNumber
+                    entityNumber: entityNumber,
+                    clusterID: null
                 };
                 if (!_.isNull(token.groupID)) {
                     dataItem.isEntity = true;

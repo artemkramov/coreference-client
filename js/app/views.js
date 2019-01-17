@@ -114,29 +114,50 @@ var ClusterView = View.extend({
         "click .btn-remove-cluster-item": "onBtnRemoveClusterItem"
     },
     initialize() {
+        basicRadioChannel.on(basicRadioChannelEvents.radioEventEntityRemoveFromCluster, this.onEntityRemoveFromCluster, this);
+
         this.listenTo(this.model, 'change', this.render);
+    },
+    onBeforeDestroy() {
+        basicRadioChannel.off(basicRadioChannelEvents.radioEventEntityRemoveFromCluster, this.onEntityRemoveFromCluster, this);
     },
     onBtnRemoveCluster: function () {
         /**
          * Remove chosen label from all tokens of cluster
          */
         _.each(this.model.get('tokens'), function (token) {
-            token.set('isChosen', false);
+            token.set('clusterID', null);
         });
         this.model.collection.remove(this.model);
     },
-    onBtnRemoveClusterItem: function (e) {
-        let tokenNumber = parseInt($(e.currentTarget).data('token'));
+    onEntityRemoveFromCluster: function (entityNumber, clusterID) {
+        if (this.model.id == clusterID) {
+            /**
+             * Find necessary entity
+             */
+            let tokenNumber = this.model.get('tokens').findIndex(function (token) {
+                return token.get('entityNumber') == entityNumber
+            });
+            if (tokenNumber > -1) {
+                this.removeClusterItem(tokenNumber);
+            }
+        }
+    },
+    removeClusterItem: function (tokenNumber) {
         let token = this.model.get('tokens')[tokenNumber];
         this.model.get('tokens').splice(tokenNumber, 1);
         this.model.set('tokens', this.model.get('tokens'));
-        token.set('isChosen', false);
+        token.set('clusterID', null);
         if (this.model.get('tokens').length == 0) {
             this.onBtnRemoveCluster();
         }
         else {
             this.render();
         }
+    },
+    onBtnRemoveClusterItem: function (e) {
+        let tokenNumber = parseInt($(e.currentTarget).data('token'));
+        this.removeClusterItem(tokenNumber);
     }
 });
 
@@ -177,17 +198,31 @@ var SidebarView = CollectionView.extend({
     onEntityToClusterAdd: function (data) {
         let cluster = null;
         if (_.isEmpty(data.clusterID)) {
-            let clusterCollectionLength = this.collection.length;
+
+            let newClusterID = 0;
+
+            if (this.collection.length > 0) {
+                /**
+                 * Find the largest ID and create cluster with it
+                 */
+                let lastCluster = this.collection.max(function (item) {
+                    return item.get('id');
+                });
+                newClusterID = lastCluster.get('id') + 1;
+            }
+            data.clusterID = newClusterID;
+
             cluster = this.collection.add({
-                id: clusterCollectionLength,
-                name: 'Cluster #' + clusterCollectionLength.toString(),
-                tokens: []
+                name: 'Cluster #' + data.clusterID.toString(),
+                tokens: [],
+                id: data.clusterID
             });
         }
         else {
-            cluster = this.collection.at(data.clusterID);
+            cluster = this.collection.get(data.clusterID);
         }
-        data.selectedTokens.map(token => token.set({isChosen: true, isSelected: false}));
+
+        data.selectedTokens.map(token => token.set({clusterID: cluster.get('id'), isSelected: false}));
         cluster.set('tokens', cluster.get('tokens').concat(data.selectedTokens));
     }
 });
@@ -202,8 +237,16 @@ var PageParsedTokenView = View.extend({
         this.listenTo(this.model, 'change', this.render);
     },
     onTokenClick: function (e) {
-        if (!this.model.get('isChosen')) {
+        if (_.isNull(this.model.get('clusterID'))) {
             this.model.set('isSelected', !this.model.get('isSelected'));
+        }
+        else {
+            /**
+             * Remove entity from its cluster
+             */
+            if (confirm('Are you sure you want to remove this token from cluster #' + this.model.get('clusterID'))) {
+                basicRadioChannel.trigger(basicRadioChannelEvents.radioEventEntityRemoveFromCluster, this.model.get('entityNumber'), this.model.get('clusterID'));
+            }
         }
     }
 });

@@ -88,7 +88,7 @@
 <script type="text/template" id="cluster-template">
     <div class="list-group-item">
         <div>
-            <a href="#<%= id %>" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="<%= id %>">
+            <a href="javascript:void(0)" data-toggle="collapse" role="button" aria-expanded="false" aria-controls="">
                 <%= name %>
             </a>
             <button class="btn btn-danger btn-remove-cluster pull-right">
@@ -125,8 +125,12 @@
 </script>
 
 <script type="text/template" id="page-parsed-token-template">
-    <span class="token <%= isEntity ? 'token-entity badge badge-primary' : '' %> <%= isSelected ? 'selected' : '' %> <%= isChosen ? 'chosen' : '' %>"
-          data-number="<%= entityNumber %>"><%= word %></span>
+    <span class="token <%= isEntity ? 'token-entity badge badge-primary' : '' %> <%= isSelected ? 'selected' : '' %> <%= !_.isNull(clusterID) ? 'chosen' : '' %>"
+          data-number="<%= entityNumber %>"><%= word %>
+        <% if (!_.isNull(clusterID)) { %>
+            <sup><%= clusterID %></sup>
+        <% } %>
+    </span>
 </script>
 
 <script type="text/template" id="page-textbox-template">
