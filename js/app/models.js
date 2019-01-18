@@ -24,15 +24,31 @@ const basicRadioChannelEvents = {
     radioEventNotification: 'notification:push'
 };
 
+/**
+ * Server IP
+ * @type {string}
+ */
 const hostIP = "http://localhost:8090";
+
+/**
+ * API endpoints
+ * @type {string}
+ */
 const urlExtract = '/extract';
 const urlSave = '/save';
 
+/**
+ * Error messages
+ */
 const errorMessages = {
     "serverError": "Server error",
     "emptyEntities": "No entity was found in the text"
 };
 
+/**
+ * Model for the processing of the input textbox data
+ * @type {void|*}
+ */
 var PageTextboxModel = Model.extend({
     defaults: {
         fileText: ""
@@ -40,9 +56,12 @@ var PageTextboxModel = Model.extend({
 });
 
 var PageParsedModel = Model.extend({
-
 });
 
+/**
+ * Model for sending of the requests to API endpoints
+ * @type {void|*}
+ */
 var ApiModel = Model.extend({
 
     /**
@@ -73,12 +92,21 @@ var ApiModel = Model.extend({
     }
 });
 
+
+/**
+ * NLP model for communicating with NLP-based API endpoints and response parsing
+ */
 var NLPModel = ApiModel.extend({
 
     defaults: {
         clusters: []
     },
 
+    /**
+     * Save all tokens
+     * @param tokens
+     * @returns {*}
+     */
     saveTokens: function (tokens) {
         let deferred = $.Deferred();
         let options = {
@@ -93,6 +121,11 @@ var NLPModel = ApiModel.extend({
         return deferred.promise();
     },
 
+    /**
+     * Extract all tokens, tags and named entities from the text
+     * @param text
+     * @returns {*}
+     */
     extractEntitiesFromText: function (text) {
         let self = this;
         let deferred = $.Deferred();
@@ -100,6 +133,10 @@ var NLPModel = ApiModel.extend({
             data: JSON.stringify({"text": text}),
             type: "post"
         };
+
+        /**
+         * Send request to the API endpoint
+         */
         this.sendJSONRequest(urlExtract, options).done(function (response) {
             if (_.isEmpty(response.entities)) {
                 return deferred.reject(errorMessages.emptyEntities);
@@ -115,6 +152,10 @@ var NLPModel = ApiModel.extend({
             let items = [];
             let counter = 0;
             let entityNumber = 0;
+
+            /**
+             * Loop through all tokens
+             */
             while (counter < response.tokens.length) {
                 let token = response.tokens[counter];
                 let dataItem = {
@@ -126,6 +167,11 @@ var NLPModel = ApiModel.extend({
                     entityNumber: entityNumber,
                     clusterID: null
                 };
+                /**
+                 * If token is a part of entity group
+                 * Than merge all words of group and set it as entity; pass all corresponding words
+                 * Else check if the word is entity
+                 */
                 if (!_.isNull(token.groupID)) {
                     dataItem.isEntity = true;
                     dataItem.word = token.groupWord;

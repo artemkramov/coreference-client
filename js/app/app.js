@@ -1,5 +1,9 @@
 const { Application } = Marionette;
 
+/**
+ * Global model for making of notifications
+ * @type {NotificationModel}
+ */
 const notificationModel = new NotificationModel();
 
 /**
@@ -22,5 +26,8 @@ const App = Application.extend({
 }
 });
 
+/**
+ * Start application
+ */
 const app = new App();
 app.start();
