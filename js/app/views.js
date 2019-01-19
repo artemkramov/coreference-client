@@ -116,23 +116,25 @@ var HeaderSaveClustersView = View.extend({
      * Save current clusters
      */
     onBtnSaveClusters: function () {
-        /**
-         * Get all tokens
-         */
-        let tokens = basicRadioChannel.request(basicRadioChannelEvents.radioEventEntityRetrieve);
-        basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderShow);
+        if (confirm('Save formed clusters?')) {
+            /**
+             * Get all tokens
+             */
+            let tokens = basicRadioChannel.request(basicRadioChannelEvents.radioEventEntityRetrieve);
+            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderShow);
 
-        /**
-         * Call model method to save all tokens
-         */
-        this.model.saveTokens(tokens).done(function () {
-            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPageChange, "textbox");
-            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, "Cluster was saved successfully", "success");
-        }).fail(function (errorMessage) {
-            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, errorMessage, "error");
-        }).always(function () {
-            basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderHide);
-        });
+            /**
+             * Call model method to save all tokens
+             */
+            this.model.saveTokens(tokens).done(function () {
+                basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPageChange, "textbox");
+                basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, "Cluster was saved successfully", "success");
+            }).fail(function (errorMessage) {
+                basicRadioChannel.trigger(basicRadioChannelEvents.radioEventNotification, errorMessage, "error");
+            }).always(function () {
+                basicRadioChannel.trigger(basicRadioChannelEvents.radioEventPreloaderHide);
+            });
+        }
     }
 });
 
@@ -164,6 +166,8 @@ var HeaderView = View.extend({
     onRender() {
         let self = this;
         let element = this.regions['content'];
+        this.model.set('clusters', []);
+
         /**
          * Switch between different content pages
          * due to the activePage attribute
