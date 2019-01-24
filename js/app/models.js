@@ -55,8 +55,7 @@ var PageTextboxModel = Model.extend({
     }
 });
 
-var PageParsedModel = Model.extend({
-});
+var PageParsedModel = Model.extend({});
 
 /**
  * Model for sending of the requests to API endpoints
@@ -122,6 +121,28 @@ var NLPModel = ApiModel.extend({
     },
 
     /**
+     * Bind server response to JS presentation
+     * @param token
+     * @param entityNumber
+     */
+    createItemFromToken: function (token, entityNumber) {
+        return {
+            isSelected: false,
+            word: token.word,
+            tag: token.tag,
+            isEntity: token.isEntity,
+            groupID: null,
+            groupWords: [],
+            entityNumber: entityNumber,
+            clusterID: null,
+            lemma: token.lemma,
+            pos: token.pos,
+            isProperName: token.isProperName,
+            isHeadWord: token.isHeadWord
+        };
+    },
+
+    /**
      * Extract all tokens, tags and named entities from the text
      * @param text
      * @returns {*}
@@ -138,7 +159,7 @@ var NLPModel = ApiModel.extend({
          * Send request to the API endpoint
          */
         this.sendJSONRequest(urlExtract, options).done(function (response) {
-            if (_.isEmpty(response.entities)) {
+            if (_.isEmpty(response.entities) && _.isEmpty(response.named_entities)) {
                 return deferred.reject(errorMessages.emptyEntities);
             }
             /**
@@ -158,15 +179,7 @@ var NLPModel = ApiModel.extend({
              */
             while (counter < response.tokens.length) {
                 let token = response.tokens[counter];
-                let dataItem = {
-                    isSelected: false,
-                    word: '',
-                    isEntity: false,
-                    groupID: null,
-                    groupWords: [],
-                    entityNumber: entityNumber,
-                    clusterID: null
-                };
+                let dataItem = self.createItemFromToken(token, entityNumber);
                 /**
                  * If token is a part of entity group
                  * Than merge all words of group and set it as entity; pass all corresponding words
@@ -178,19 +191,11 @@ var NLPModel = ApiModel.extend({
                     dataItem.groupID = token.groupID;
                     let i = counter;
                     for (i = counter; i < counter + token.groupLength; i++) {
-                        dataItem.groupWords.push({
-                            word: response.tokens[i].word,
-                            tag: response.tokens[i].tag
-                        })
+                        dataItem.groupWords.push(self.createItemFromToken(response.tokens[i], 0))
                     }
                     counter += token.groupLength;
                 }
                 else {
-                    if (token.isEntity) {
-                        dataItem.isEntity = true;
-                    }
-                    dataItem.word = token.word;
-                    dataItem.tag = token.tag;
                     counter++;
                 }
                 items.push(dataItem);
@@ -231,7 +236,7 @@ var NotificationModel = Model.extend({
      */
     setMessage: function (message, status) {
         if (!_.isUndefined(message)) {
-            let n  = new Noty({
+            let n = new Noty({
                 type: status,
                 text: message,
                 layout: 'bottomCenter',

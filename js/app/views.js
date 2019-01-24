@@ -305,7 +305,7 @@ var SidebarView = CollectionView.extend({
     template: _.template($("#sidebar-template").html()),
     childView: ClusterView,
     childViewContainer: "#clusters-wrapper",
-    emptyView: SidebarEmptyView,
+    //emptyView: SidebarEmptyView,
     initialize() {
 
         /**
