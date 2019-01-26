@@ -110,6 +110,7 @@ var HeaderSaveClustersView = View.extend({
                 clusterID: clusterID,
                 selectedTokens: selectedTokens
             });
+            this.$el.find("#select-cluster").prop('selectedIndex', 0);
         }
     },
     /**
